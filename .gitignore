@@ -1,0 +1,9 @@
+*/obj/*
+*/bin/*
+*.suo
+*.user
+*.sdf
+*.opensdf
+*.pidb
+*.userprefs
+Win32Debugger/obj/*
