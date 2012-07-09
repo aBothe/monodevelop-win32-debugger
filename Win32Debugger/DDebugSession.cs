@@ -129,8 +129,10 @@ namespace MonoDevelop.Debugger.DDebugger
 		
 		protected override void OnAttachToProcess (long processId)
 		{
-            //ToDo implement:
             targetProcessId = processId;
+
+            StartDebuggerSession(null, processId);
+            IsDebugging = true;
 		}
 		
         private void RunCv2Pdb(string target)
@@ -161,14 +163,16 @@ namespace MonoDevelop.Debugger.DDebugger
                 opt.EngCreateFlags = EngCreateFlags.Default;
             }
 
-			
-			if (attachToProcessId != 0)
-				Engine.CreateProcessAndAttach(0, "", opt, Path.GetDirectoryName(startInfo.Command), "", (uint)attachToProcessId, 0);
-			else			
-				Engine.CreateProcessAndAttach(0, startInfo.Command + (string.IsNullOrWhiteSpace(startInfo.Arguments) ? "" : (" " + startInfo.Arguments)), opt, Path.GetDirectoryName(startInfo.Command), "", 0, 0);           
+            if (attachToProcessId != 0)
+            {
+                Engine.CreateProcessAndAttach(0, null, opt, null, null, (uint)attachToProcessId, AttachFlags.InvasiveNoInitialBreak);
+            }
+            else
+            {
+                Engine.CreateProcessAndAttach(0, startInfo.Command + (string.IsNullOrWhiteSpace(startInfo.Arguments) ? "" : (" " + startInfo.Arguments)), opt, Path.GetDirectoryName(startInfo.Command), "", 0, 0);
+                Engine.Symbols.SourcePath = (string.IsNullOrWhiteSpace(startInfo.WorkingDirectory)) ? Path.GetDirectoryName(startInfo.Command) : startInfo.WorkingDirectory;
+            }
 
-            //ToDo: figure out how to pass the symbol path
-            Engine.Symbols.SourcePath = (string.IsNullOrWhiteSpace(startInfo.WorkingDirectory)) ? Path.GetDirectoryName(startInfo.Command) : startInfo.WorkingDirectory;
 			Engine.IsSourceCodeOrientedStepping = true;
 			
 			Engine.WaitForEvent();					
