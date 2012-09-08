@@ -6,8 +6,9 @@ using System.Diagnostics;
 using Mono.Debugging.Client;
 using Mono.Debugging.Backend;
 using MonoDevelop.Core.Execution;
+using MonoDevelop.Debugger;
 
-namespace MonoDevelop.Debugger.DDebugger
+namespace MonoDevelop.D.DDebugger.DbgEng
 {
 	public class DDebugSessionFactory: IDebuggerEngine
 	{

@@ -13,7 +13,7 @@ using MonoDevelop.Core.Execution;
 //using Mono.Unix.Native;
 using DebugEngineWrapper;
 
-namespace MonoDevelop.Debugger.DDebugger
+namespace MonoDevelop.D.DDebugger.DbgEng
 {
 	class BreakPointWrapper
 	{

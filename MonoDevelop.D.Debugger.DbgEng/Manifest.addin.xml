@@ -1,8 +1,8 @@
-<Addin id = "Mono.Debugging.Win32.D"
-       name	     = "win32-d"
+<Addin id = "D-Debugger-DbgEng"
+       name	     = "D Language Binding DbgEng Debugger"
        author	 = "Michael Crompton"
        url       = "http://mono-d.alexanderbothe.com/"
-       description = "D Debugger support for Mono.Debugging"
+       description = "D Debugger support for Mono-D using DbgEng"
        copyright   = ""
        category = "Debugging"
        version   = "2.8.2">
@@ -14,10 +14,10 @@
 	</Dependencies>
 	
 	<Extension path="/MonoDevelop/Debugging/DebuggerEngines">
-		<DebuggerEngine id="Mono.Debugger.Win32.D" 
-			name="DDebug Debugger" 
+		<DebuggerEngine id="Monodevelop.D.Debugger.DbgEng" 
+			name="Mono-D-Debugger-DbgEng" 
 			features="ConditionalBreakpoints, Tracepoints, Catchpoints, Attaching, DebugFile, Stepping, Pause, Breakpoints"
-			type="MonoDevelop.Debugger.DDebugger.DDebugSessionFactory" />
+			type="MonoDevelop.D.DDebugger.DbgEng.DDebugSessionFactory" />
 	</Extension>
 
 </Addin>
