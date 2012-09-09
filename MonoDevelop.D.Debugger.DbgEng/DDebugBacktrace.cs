@@ -70,8 +70,6 @@ namespace MonoDevelop.D.DDebugger.DbgEng
             //DDebugCommandResult res = session.RunCommand("-stack-list-frames", firstIndex.ToString(), lastIndex.ToString());
             //ResultData stack = res.GetObject ("stack");
 
-
-
             for (int n = 0; n < Engine.CallStack.Length; n++)
             {
                 //ResultData frd = stack.GetObject (n);
@@ -88,12 +86,16 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
             for (uint i = 0; i < Engine.Symbols.ScopeLocalSymbols.Count; i++)
             {
+                if (Engine.Symbols.ScopeLocalSymbols.Symbols[i].Parent != null)
+                    continue;
+
                 string name = Engine.Symbols.ScopeLocalSymbols.Symbols[i].Name;
                 string typename = Engine.Symbols.ScopeLocalSymbols.Symbols[i].TypeName;
                 string val = Engine.Symbols.ScopeLocalSymbols.Symbols[i].TextValue;
                 ulong offset = Engine.Symbols.ScopeLocalSymbols.Symbols[i].Offset;
+                DEW.DebugScopedSymbol parentSymbol = Engine.Symbols.ScopeLocalSymbols.Symbols[i].Parent;
 
-                ObjectValue ov = FindParsedDVariable(offset, name, typename, val);
+                ObjectValue ov = FindParsedDVariable(offset, name, typename, val, parentSymbol);
                 if (ov == null)
                 {
                     ObjectValueFlags flags = ObjectValueFlags.Variable;
@@ -142,7 +144,20 @@ namespace MonoDevelop.D.DDebugger.DbgEng
             return null;
         }
 
-        private ObjectValue FindParsedDVariable(ulong offset, string symbolname, string typename, string val)
+        private AbstractType[] ResolveParentSymbol(DEW.DebugScopedSymbol parentsymbol, ResolverContextStack ctxt)
+        {
+            if (parentsymbol.Parent != null)
+            {
+                return TypeDeclarationResolver.ResolveFurtherTypeIdentifier(parentsymbol.Name, ResolveParentSymbol(parentsymbol.Parent, ctxt), ctxt, null);
+            }
+            else
+            {
+                return TypeDeclarationResolver.ResolveIdentifier(parentsymbol.Name, ctxt, null);
+            }
+
+        }
+
+        private ObjectValue FindParsedDVariable(ulong offset, string symbolname, string typename, string val, DEW.DebugScopedSymbol parentsymbol)
         {
             IAbstractSyntaxTree module;
             int codeLine;
@@ -170,7 +185,16 @@ namespace MonoDevelop.D.DDebugger.DbgEng
                 var ctxt = new ResolverContextStack(dproj.ParseCache,
                         new ResolverContext { ScopedBlock = block, ScopedStatement = stmt });
 
-                var res = TypeDeclarationResolver.ResolveIdentifier(symbolname, ctxt, null);
+                AbstractType[] res;
+                if (parentsymbol != null)
+                {
+                    var parentres = ResolveParentSymbol(parentsymbol, ctxt);
+                    res = TypeDeclarationResolver.ResolveFurtherTypeIdentifier(symbolname, parentres, ctxt, null);
+                }
+                else
+                {
+                    res = TypeDeclarationResolver.ResolveIdentifier(symbolname, ctxt, null);
+                }
 
                 if (res != null && res.Length > 0 && res[0] is DSymbol)
                 {
@@ -187,10 +211,10 @@ namespace MonoDevelop.D.DDebugger.DbgEng
                     _typeString = t.ToString();
             }
 
-
-
             // Set value string
             string _valueString = val;
+
+            ObjectValueFlags flags = ObjectValueFlags.Variable;
 
             if (variableNode != null)
             {
@@ -208,6 +232,8 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
                         if (IsArray(curValueType))
                         {
+                            flags = ObjectValueFlags.Array;
+
                             var clampDecl = curValueType as ArrayDecl;
                             var valueType = clampDecl.InnerDeclaration;
 
@@ -218,7 +244,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
                                 var realType = DetermineArrayType((valueType as DTokenDeclaration).Token, out elsz, out IsString);
 
                                 var arr = Engine.Symbols.ReadArray(offset, realType, elsz);
-                                
+
                                 if (arr != null)
                                     _valueString = BuildArrayContentString(arr, IsString);
 
@@ -226,18 +252,14 @@ namespace MonoDevelop.D.DDebugger.DbgEng
                         }
                         else
                         {
-
+                            flags = ObjectValueFlags.Object;
                         }
                     }
                 }
             }
 
-
-            ObjectValueFlags flags = ObjectValueFlags.Variable;
             return ObjectValue.CreatePrimitive(this, new ObjectPath(symbolname), _typeString, new EvaluationResult(_valueString), flags);
         }
-
-
 
         public static bool IsBasicType(ITypeDeclaration t)
         {
@@ -253,7 +275,6 @@ namespace MonoDevelop.D.DDebugger.DbgEng
         {
             return t is ArrayDecl;
         }
-
 
         public static Type DetermineArrayType(int Token, out uint size, out bool IsString)
         {
@@ -358,8 +379,6 @@ namespace MonoDevelop.D.DDebugger.DbgEng
         public ObjectValue[] GetParameters(int frameIndex, EvaluationOptions options)
         {
             List<ObjectValue> values = new List<ObjectValue>();
-            return values.ToArray();
-
 
             SelectFrame(frameIndex);
 
@@ -439,14 +458,12 @@ namespace MonoDevelop.D.DDebugger.DbgEng
         ObjectValue CreateObjectValue(string name, DebugEngineWrapper.DebugScopedSymbol symbol)
         {
 
-
-
             string vname = symbol.Name;
             string typeName = symbol.TypeName;
             string value = symbol.TextValue;
             int nchild = (int)symbol.ChildrenCount;
 
-            ObjectValue val = FindParsedDVariable(symbol.Offset, vname, typeName, value);
+            ObjectValue val = FindParsedDVariable(symbol.Offset, vname, typeName, value, symbol.Parent);
             if (val == null)
             {
                 ObjectValueFlags flags = ObjectValueFlags.Variable;
@@ -479,6 +496,46 @@ namespace MonoDevelop.D.DDebugger.DbgEng
         {
             List<ObjectValue> children = new List<ObjectValue>();
             session.SelectThread(threadId);
+
+            if (Engine.Symbols.ScopeLocalSymbols == null)
+                return children.ToArray();
+
+            DEW.DebugScopedSymbol parent = null;
+
+            for (uint i = 0; i < Engine.Symbols.ScopeLocalSymbols.Symbols.Length; i++)
+            {
+                DEW.DebugScopedSymbol symbol = Engine.Symbols.ScopeLocalSymbols.Symbols[i];
+                if (symbol.Name == path.LastName)
+                {
+                    parent = symbol;
+                    break;
+                }
+            }
+
+            if (parent == null || parent.ChildrenCount == 0) 
+                return children.ToArray();
+
+            for (uint i = 0; i < parent.ChildrenCount; i++)
+            {
+
+                DEW.DebugScopedSymbol child = parent.Children[i];
+
+                string name = child.Name;
+                string typename = child.TypeName;
+                string val = child.TextValue;
+                ulong offset = child.Offset;
+
+                ObjectValue ov = FindParsedDVariable(offset, name, typename, val, child.Parent);
+                if (ov == null)
+                {
+                    ObjectValueFlags flags = ObjectValueFlags.Variable;
+                    ov = ObjectValue.CreatePrimitive(this, new ObjectPath(name), typename, new EvaluationResult(val), flags);
+                }
+
+                if (ov != null)
+                    children.Add(ov);
+            }
+
             return children.ToArray();
 
             /*
