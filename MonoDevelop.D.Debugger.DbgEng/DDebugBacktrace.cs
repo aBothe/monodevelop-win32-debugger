@@ -126,7 +126,6 @@ namespace MonoDevelop.D.DDebugger.DbgEng
         {
             List<ObjectValue> values = new List<ObjectValue>();
 
-
             SelectFrame(frameIndex);
             foreach (string exp in expressions)
                 values.Add(CreateVarObject(exp));
@@ -150,6 +149,23 @@ namespace MonoDevelop.D.DDebugger.DbgEng
             return null;
         }
 
+        DEW.DebugScopedSymbol FindScopedSymbol(string symbolname, DEW.DebugScopedSymbol[] symbols)
+        {
+            List<string> path = new List<string>(symbolname.Split('.'));
+
+            for (uint i = 0; i < symbols.Length; i++)
+            {
+                if (path[0] == symbols[i].Name)
+                {
+                    path.RemoveAt(0);
+                    if (path.Count > 0)
+                        return FindScopedSymbol(string.Join(".", path.ToArray()), symbols[i].Children);
+                    else
+                        return symbols[i];
+                }
+            }
+            return null;
+        }
 
         ObjectValue CreateVarObject(string exp)
         {
@@ -157,18 +173,16 @@ namespace MonoDevelop.D.DDebugger.DbgEng
             {
                 session.SelectThread(threadId);
 
-                DebugEngineWrapper.DebugSymbolData[] datasymbols = Engine.Symbols.GetSymbols(exp);
+                //DebugEngineWrapper.DebugSymbolData[] datasymbols = Engine.Symbols.GetSymbols("*");
 
-                for (uint i = 0; i < Engine.Symbols.ScopeLocalSymbols.Count; i++)
+                var rootSymbols = Array.FindAll<DEW.DebugScopedSymbol>(Engine.Symbols.ScopeLocalSymbols.Symbols, (a) => (a.Parent == null));
+                DEW.DebugScopedSymbol foundSymbol = FindScopedSymbol(exp, rootSymbols);
+
+                if (foundSymbol != null)
                 {
-                    if (exp == Engine.Symbols.ScopeLocalSymbols.Symbols[i].Name)
-                    {
-
-                        session.RegisterTempVariableObject(exp);
-                        return CreateObjectValue(exp, Engine.Symbols.ScopeLocalSymbols.Symbols[i]);
-                    }
+                    session.RegisterTempVariableObject(exp);
+                    return CreateObjectValue(exp, foundSymbol);
                 }
-
                 return ObjectValue.CreateUnknown(exp);
             }
             catch
@@ -221,7 +235,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
                 }
             }
 
-            if (parent == null || parent.ChildrenCount == 0) 
+            if (parent == null || parent.ChildrenCount == 0)
                 return children.ToArray();
 
             for (uint i = 0; i < parent.ChildrenCount; i++)
