@@ -1,0 +1,21 @@
+
+===========
+ TODO
+===========
+
+- Tooltips that depict variable contents while the program execution is interrupted
+- Expressions get evaluated using the expression evaluator and variable contents read from of the memory
+
+- toString() execution for objects:
+	- Inject a client dll into the program
+	- Connect to the mono-d-debugger server via a named pipe
+	- let the debugger extension pass the raw object pointer to the client dll
+	- the client dll will convert the pointer to an object ("dynamic reinterpration")
+	- the object's toString() method will be executed
+	- the built string will be passed back to the debugger
+	- the string will be taken as an object value representation in the locals tree view or as a tooltip
+	-> Top notch .Net-debugging like user experience
+
+(- probably also execute property functions to get further information, 
+	get TypeInfo-objects [always client-side, to get information about property getters - and execute them then], 
+	examine virtual tables)
