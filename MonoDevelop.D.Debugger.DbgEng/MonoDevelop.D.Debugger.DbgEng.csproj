@@ -47,6 +47,7 @@
   <ItemGroup>
     <Reference Include="ICSharpCode.NRefactory">
       <HintPath>..\ext\ICSharpCode.NRefactory.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="Mono.Debugging">
       <HintPath>..\ext\Mono.Debugging.dll</HintPath>
