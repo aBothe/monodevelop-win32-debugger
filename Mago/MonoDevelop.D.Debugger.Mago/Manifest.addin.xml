@@ -1,0 +1,23 @@
+<Addin id = "D-Debugger-Mago"
+       name	     = "D Language Binding Mago Debugger"
+       author	 = "Michael Crompton"
+       url       = "http://mono-d.alexanderbothe.com/"
+       description = "D Debugger support for Mono-D using Mago"
+       copyright   = ""
+       category = "Debugging"
+       version   = "2.8.2">
+
+	<Dependencies>
+		<Addin id="MonoDevelop.Core" version="3.0"/>
+		<Addin id="MonoDevelop.Ide" version="3.0"/>
+		<Addin id="MonoDevelop.Debugger" version="3.0"/>
+	</Dependencies>
+	
+	<Extension path="/MonoDevelop/Debugging/DebuggerEngines">
+		<DebuggerEngine id="MonoDevelop.D.Debugger.Mago" 
+			name="Mono-D-Debugger-Mago" 
+			features="ConditionalBreakpoints, Tracepoints, Catchpoints, Attaching, DebugFile, Stepping, Pause, Breakpoints"
+			type="MonoDevelop.D.DDebugger.Mago.DDebugSessionFactory" />
+	</Extension>
+
+</Addin>
