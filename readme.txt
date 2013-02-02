@@ -1,6 +1,6 @@
-An addon for MonoDevelop that enables debugging of C++/D Win32 apps
+An addons for MonoDevelop that enables debugging of C++/D Win32 apps
 
-Requirements
+DbgEng Requirements
 ============
 
 cv2pdb - http://dsource.org/projects/cv2pdb
