@@ -1,3 +1,3 @@
-[submodule "Mono-D"]
+[submodule "DbgEng/Mono-D"]
 	path = DbgEng/Mono-D
 	url = git://github.com/aBothe/Mono-D.git
