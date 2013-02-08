@@ -46,27 +46,27 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="ICSharpCode.NRefactory">
-      <HintPath>ext\ICSharpCode.NRefactory.dll</HintPath>
+      <HintPath>..\ext\ICSharpCode.NRefactory.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MagoWrapper">
-      <HintPath>ext\MagoWrapper.dll</HintPath>
+      <HintPath>..\MagoWrapper\MagoWrapper.dll</HintPath>
     </Reference>
     <Reference Include="Mono.Debugging">
-      <HintPath>ext\Mono.Debugging.dll</HintPath>
+      <HintPath>..\ext\Mono.Debugging.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MonoDevelop.Core">
-      <HintPath>ext\MonoDevelop.Core.dll</HintPath>
+      <HintPath>..\ext\MonoDevelop.Core.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MonoDevelop.Debugger">
-      <HintPath>ext\MonoDevelop.Debugger.dll</HintPath>
+      <HintPath>..\ext\MonoDevelop.Debugger.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MonoDevelop.Ide, Version=2.6.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>ext\MonoDevelop.Ide.dll</HintPath>
+      <HintPath>..\ext\MonoDevelop.Ide.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
