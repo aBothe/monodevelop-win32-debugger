@@ -161,11 +161,29 @@ namespace MonoDevelop.D.DDebugger.Mago
             {
                 debuggeeEvent.Set();
                 Console.WriteLine("on exception");
+                string expName = exceptRec.ExceptionName;
+                string expInfo = exceptRec.ExceptionInfo;
 
-                //StopWaitingForEvents = true;
-                //this.HandleException(new Exception(ex.Message));
+                TargetEventArgs args = new TargetEventArgs(TargetEventType.UnhandledException);
+                
+                ProcessInfo process = OnGetProcesses()[0];
+                args.Process = new ProcessInfo(process.Id, process.Name);
+                args.Backtrace = new Backtrace(new DDebugExceptionBackTrace(exceptRec, this, activeThread, this.debuggee));
+                args.Thread = this.GetThread(activeThread);
 
-                return true;
+                ThreadPool.QueueUserWorkItem(delegate(object data)
+                {
+                    try
+                    {
+                        OnTargetEvent((TargetEventArgs)data);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                }, args);
+  
+                return false;
             };
 
             debuggee.OnBreakpoint += delegate(uint threadId, uint address)
@@ -363,7 +381,7 @@ namespace MonoDevelop.D.DDebugger.Mago
                 uint line;
                 if (this.SymbolResolver.GetCodeLineFromAddress(address, out filename, out line))
                 {
-                    args.BreakEvent = breakInfo.BreakEvent;
+                    args.BreakEvent = breakInfo.BreakEvent;                    
                 }
             }
 

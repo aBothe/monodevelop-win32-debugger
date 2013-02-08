@@ -10,6 +10,32 @@ using MagoWrapper;
 
 namespace MonoDevelop.D.DDebugger.Mago
 {
+    class DDebugExceptionBackTrace : DDebugBacktrace
+    {
+        private ExceptionRecord exceptionRecord;
+        public DDebugExceptionBackTrace(ExceptionRecord rec, DDebugSession session, uint threadId, Debuggee debuggee)
+            : base(session, threadId, debuggee)
+        {
+            this.exceptionRecord = rec;
+                
+        }
+
+        public override ExceptionInfo GetException(int frameIndex, EvaluationOptions options)
+        {
+            ExceptionInfo result = new ExceptionInfo(
+                ObjectValue.CreateError(
+                    this,
+                    new ObjectPath(
+                        new string[] { exceptionRecord.ExceptionName }), 
+                    exceptionRecord.ExceptionName, 
+                    exceptionRecord.ExceptionInfo, 
+                    ObjectValueFlags.Error));
+            
+            return result;
+        }
+    }
+
+
     class DDebugBacktrace : IBacktrace, IObjectValueSource
     {
         int fcount;
@@ -140,7 +166,7 @@ namespace MonoDevelop.D.DDebugger.Mago
             return values.ToArray();
         }
 
-        public ExceptionInfo GetException(int frameIndex, EvaluationOptions options)
+        public virtual ExceptionInfo GetException(int frameIndex, EvaluationOptions options)
         {
             return null;
         }
@@ -254,6 +280,7 @@ namespace MonoDevelop.D.DDebugger.Mago
         public AssemblyLine[] Disassemble(int frameIndex, int firstLine, int count)
         {
             SelectFrame(frameIndex);
+ 
             return null;
         }
 
