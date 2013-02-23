@@ -118,7 +118,7 @@ namespace MonoDevelop.D.DDebugger.Mago
             if (expression.Trim().Length == 0)
                 return children.ToArray();
 
-            List<DebugScopedSymbol> childSymbols = this.session.SymbolResolver.GetChildSymbols(expression, threadId);
+            List<DebugScopedSymbol> childSymbols = this.session.SymbolResolver.GetChildSymbols(expression);
             if (childSymbols.Count == 0)
                 return children.ToArray();
 

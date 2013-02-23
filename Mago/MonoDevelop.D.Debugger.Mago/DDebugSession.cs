@@ -33,7 +33,6 @@ namespace MonoDevelop.D.DDebugger.Mago
         MagoWrapper.SymbolResolver symbolResolver;
 
         bool IsDebugging;
-        bool EngineStarting;
         bool StopWaitingForEvents = false;
 
         IProcessAsyncOperation console;
@@ -48,10 +47,7 @@ namespace MonoDevelop.D.DDebugger.Mago
 
         DateTime lastBreakEventUpdate = DateTime.Now;
         Dictionary<int, WaitCallback> breakUpdates = new Dictionary<int, WaitCallback>();
-        bool breakUpdateEventsQueued;
         const int BreakEventUpdateNotifyDelay = 500;
-
-        bool logGdb;
 
         object syncLock = new object();
         object eventLock = new object();
@@ -60,12 +56,6 @@ namespace MonoDevelop.D.DDebugger.Mago
         ulong lastLineAddress;
 
         ManualResetEvent debuggeeEvent;
-
-        public DDebugSession()
-        {
-            logGdb = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("MONODEVELOP_GDB_LOG"));
-
-        }
 
         public MagoWrapper.DDebugger Engine
         {
@@ -161,6 +151,7 @@ namespace MonoDevelop.D.DDebugger.Mago
             {
                 debuggeeEvent.Set();
                 Console.WriteLine("on exception");
+                activeThread = threadId;
                 string expName = exceptRec.ExceptionName;
                 string expInfo = exceptRec.ExceptionInfo;
 
@@ -191,7 +182,7 @@ namespace MonoDevelop.D.DDebugger.Mago
                 debuggeeEvent.Set();
                 Console.WriteLine("on breakpoint");
 
-                activeThread = (uint)threadId;
+                activeThread = threadId;
                 lastLineAddress = address;
 
                 FireBreakPoint(lastLineAddress);
@@ -238,7 +229,6 @@ namespace MonoDevelop.D.DDebugger.Mago
         void StartDebuggerSession(DebuggerStartInfo startInfo, long attachToProcessId)
         {
             IsDebugging = true;
-            EngineStarting = true;
 
             debuggeeEvent = new ManualResetEvent(false);
             debuggee = new Debuggee();
@@ -248,7 +238,6 @@ namespace MonoDevelop.D.DDebugger.Mago
 
             WaitForDebugEvent();
 
-            EngineStarting = false;
         }
 
         public void GotoCurrentLocation()

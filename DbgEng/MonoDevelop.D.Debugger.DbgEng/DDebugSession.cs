@@ -47,8 +47,6 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 		Dictionary<int, WaitCallback> breakUpdates = new Dictionary<int,WaitCallback> ();
 		bool breakUpdateEventsQueued;
 		const int BreakEventUpdateNotifyDelay = 500;
-
-		bool logGdb;
 			
 		object syncLock = new object ();
 		object eventLock = new object ();
@@ -58,7 +56,6 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 		
 		public DDebugSession ()
 		{
-			logGdb = !string.IsNullOrEmpty (Environment.GetEnvironmentVariable ("MONODEVELOP_GDB_LOG"));
             Engine = new DBGEngine();
 
 				Engine.Output += delegate(OutputFlags type, string msg)

@@ -43,11 +43,19 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 					return data.IsExe;
 			}
 			data.LastCheck = currentTime;
-			try {
-				data.IsExe = IsExecutable (file);
-			} catch {
-				data.IsExe = false;
-			}
+            try
+            {
+                data.IsExe = IsExecutable(file);
+            }
+            catch (IOException ex)
+            {
+                // The file could still be in use by compiler, so don't want to report that the file is not an exe
+                return false;
+            }
+            catch
+            {
+                data.IsExe = false;
+            }
 			fileCheckCache [file] = data;
 			return data.IsExe;
 		}

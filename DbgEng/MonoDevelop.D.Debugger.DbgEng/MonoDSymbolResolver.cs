@@ -59,8 +59,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
                 var block = DResolver.SearchBlockAt(module, new CodeLocation(0, codeLine), out stmt);
 
-                var ctxt = new ResolverContextStack(dproj.ParseCache,
-                        new ResolverContext { ScopedBlock = block, ScopedStatement = stmt });
+                var ctxt = ResolutionContext.Create(null, null, block);
 
                 AbstractType[] res;
                 if (parentsymbol != null)
@@ -138,7 +137,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
             return ObjectValue.CreatePrimitive(ObjectValueSource, new ObjectPath(symbolname), _typeString, new EvaluationResult(_valueString), flags);
         }
 
-        private AbstractType[] ResolveParentSymbol(DEW.DebugScopedSymbol parentsymbol, ResolverContextStack ctxt)
+        private AbstractType[] ResolveParentSymbol(DEW.DebugScopedSymbol parentsymbol, ResolutionContext ctxt)
         {
             if (parentsymbol.Parent != null)
             {
