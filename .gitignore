@@ -7,3 +7,6 @@
 *.pidb
 *.userprefs
 Win32Debugger/obj/*
+DbgEng/MonoDevelop.D.Debugger.DbgEng/obj/*
+DbgEng/MonoDevelop.D.Debugger.DbgEng/bin/*
+DbgEng/DebugEngineWrapper/bin/*
