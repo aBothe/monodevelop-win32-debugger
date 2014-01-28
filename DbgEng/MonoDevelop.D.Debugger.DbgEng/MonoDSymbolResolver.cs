@@ -15,6 +15,7 @@ using MonoDevelop.D;
 
 
 using DEW = DebugEngineWrapper;
+using MonoDevelop.D.Projects;
 
 namespace MonoDevelop.D.DDebugger.DbgEng
 {
@@ -36,7 +37,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
         public ObjectValue Resolve(ulong offset, string symbolname, string typename, string val, DEW.DebugScopedSymbol parentsymbol)
         {
-            IAbstractSyntaxTree module;
+            DModule module;
             int codeLine;
             INode variableNode = null;
 
@@ -49,7 +50,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
             if (string.IsNullOrWhiteSpace(file))
                 return null;
 
-            DProject dproj = null;
+            AbstractDProject dproj = null;
             module = GetFileSyntaxTree(file, out dproj);
 
             // If syntax tree built, search the variable location
@@ -265,24 +266,10 @@ namespace MonoDevelop.D.DDebugger.DbgEng
         }
 
 
-        public static IAbstractSyntaxTree GetFileSyntaxTree(string file, out DProject OwnerProject)
+        public static DModule GetFileSyntaxTree(string file, out AbstractDProject OwnerProject)
         {
-            OwnerProject = null;
-            var proj = IdeApp.Workbench.ActiveDocument.Project as DProject;
-            if (proj != null)
-            {
-                if (proj != null && (proj.Files.GetFile(file) != null))
-                {
-                    OwnerProject = proj;
-                    var modules = proj.LocalFileCache as IEnumerable<IAbstractSyntaxTree>;
-                    foreach (IAbstractSyntaxTree module in modules)
-                    {
-                        if (module.FileName.Equals(file, StringComparison.InvariantCultureIgnoreCase))
-                            return module;
-                    }
-                }
-            }
-            return null;
+            OwnerProject = IdeApp.Workbench.ActiveDocument.Project as AbstractDProject;
+			return GlobalParseCache.GetModule(file);
         }
     }
 }

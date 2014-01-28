@@ -35,7 +35,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <StartAction>Program</StartAction>
-    <StartProgram>..\..\..\..\..\..\..\Program Files %28x86%29\MonoDevelop\bin\MonoDevelop.exe</StartProgram>
+    <StartProgram>C:\Program Files (x86)\Xamarin Studio\bin\XamarinStudio.exe</StartProgram>
     <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Platform)' == 'AnyCPU' ">
@@ -45,25 +45,24 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="aMonoDevelop.Ide">
+      <HintPath>..\Mono-D\ext\aMonoDevelop.Ide.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="ICSharpCode.NRefactory">
-      <HintPath>..\ext\ICSharpCode.NRefactory.dll</HintPath>
+      <HintPath>..\Mono-D\ext\ICSharpCode.NRefactory.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Mono.Debugging">
-      <HintPath>..\ext\Mono.Debugging.dll</HintPath>
+      <HintPath>..\Mono-D\ext\Mono.Debugging.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MonoDevelop.Core">
-      <HintPath>..\ext\MonoDevelop.Core.dll</HintPath>
+      <HintPath>..\Mono-D\ext\MonoDevelop.Core.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="MonoDevelop.Debugger">
-      <HintPath>..\ext\MonoDevelop.Debugger.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="MonoDevelop.Ide, Version=2.6.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\ext\MonoDevelop.Ide.dll</HintPath>
+      <HintPath>..\Mono-D\ext\MonoDevelop.Debugger.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
