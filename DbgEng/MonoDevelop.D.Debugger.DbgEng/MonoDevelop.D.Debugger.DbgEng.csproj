@@ -90,6 +90,7 @@
     <ProjectReference Include="..\DebugEngineWrapper\DebugEngineWrapper.vcxproj">
       <Project>{A0025FA2-93AC-4F77-AEDE-78969DB73B5E}</Project>
       <Name>DebugEngineWrapper</Name>
+      <Private>True</Private>
     </ProjectReference>
     <ProjectReference Include="..\Mono-D\MonoDevelop.DBinding\MonoDevelop.D.csproj">
       <Project>{5867254F-6B1C-4A4C-BF98-C283740A0470}</Project>
@@ -99,7 +100,7 @@
     <ProjectReference Include="..\Mono-D\Parser\DParser2\DParser2.csproj">
       <Project>{0290a229-9aa1-41c3-b525-cafb86d8bc42}</Project>
       <Name>DParser2</Name>
-      <Private>True</Private>
+      <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
