@@ -1,6 +1,6 @@
 <Addin id = "D-Debugger-DbgEng"
        name	     = "D Language Binding DbgEng Debugger"
-       author	 = "Michael Crompton"
+       author	 = "Michael Crompton, Alexander Bothe"
        url       = "http://mono-d.alexanderbothe.com/"
        description = "D Debugger support for Mono-D using DbgEng"
        copyright   = ""
@@ -14,7 +14,15 @@
 	</Dependencies>
 
 	<Runtime>
-		<Import assembly="D_Parser.dll"/>
+		<Import assembly="DebugEngineWrapper.dll"/>
+
+		<Import file="cv2pdb.exe"/>
+		<Import file="dbgeng.dll"/>
+		<Import file="dbghelp.dll"/>
+		<Import file="msobj80.dll"/>
+		<Import file="mspdb80.dll"/>
+		<Import file="mspdbcore.dll"/>
+		<Import file="mspdbsrv.exe"/>
 	</Runtime>
 
 	<Extension path="/MonoDevelop/Debugging/DebuggerEngines">
