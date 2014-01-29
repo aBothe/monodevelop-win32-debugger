@@ -3,6 +3,7 @@
 *.suo
 *.user
 *.sdf
+*.ipch
 *.opensdf
 *.pidb
 *.userprefs

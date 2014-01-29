@@ -65,9 +65,13 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
 		public DebuggerStartInfo CreateDebuggerStartInfo(ExecutionCommand command)
 		{
-			NativeExecutionCommand pec = (NativeExecutionCommand)command;
-			DebuggerStartInfo startInfo = new DebuggerStartInfo();
-			startInfo.Command = pec.Command;
+			var pec = (NativeExecutionCommand)command;
+			var startInfo = new DebuggerStartInfo();
+
+			var cmd = pec.Command;
+			RunCv2Pdb(ref cmd);
+
+			startInfo.Command = cmd;
 			startInfo.Arguments = pec.Arguments;
 			startInfo.WorkingDirectory = pec.WorkingDirectory;
 			if (pec.EnvironmentVariables.Count > 0)
@@ -76,6 +80,50 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 					startInfo.EnvironmentVariables[val.Key] = val.Value;
 			}
 			return startInfo;
+		}
+
+		public static void RunCv2Pdb(ref string target)
+		{
+			const string cv2pdb = "cv2pdb.exe";
+
+			var dir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+			var p = Path.Combine(dir, cv2pdb);
+			if (!File.Exists(p))
+			{
+				p = cv2pdb;
+				dir = null;
+			}
+
+			var pdb = Path.ChangeExtension(target, ".pdb");
+
+			var psi = new ProcessStartInfo(p, "\"" + target + "\" \""+ (target = Path.ChangeExtension(target,".pdb.exe")) +"\" \"" + pdb + "\"");
+			psi.UseShellExecute = false;
+			psi.RedirectStandardOutput = true;
+			psi.RedirectStandardError = true;
+			psi.CreateNoWindow = true;
+			if (dir != null)
+				psi.WorkingDirectory = dir;
+
+			Process proc;
+			try
+			{
+				proc = Process.Start(psi);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error running cv2pdb.exe on target: " + target +
+									"\r\nPlease ensure that path to cv2pdb is registered in the 'PATH' environment variable" +
+									"\r\nDetails:\r\n" + ex.Message);
+			}
+
+			if (!proc.WaitForExit(30000))
+				proc.Kill();
+			/*
+			if (proc.ExitCode != 0)
+				throw new Exception("Couldn't execute cv2pdb: " + proc.StandardError.ReadToEnd() + "\r\n" + proc.StandardOutput.ReadToEnd());
+			*/
+			if (!File.Exists(pdb) || !File.Exists(target))
+				throw new FileNotFoundException("Error during cv2pdb execution", pdb, new Exception(proc.StandardError.ReadToEnd() + "\r\n" + proc.StandardOutput.ReadToEnd()));
 		}
 
 		public bool IsExecutable(string file)
