@@ -154,14 +154,15 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			{
 				Engine.CreateProcessAndAttach(0, startInfo.Command + (string.IsNullOrWhiteSpace(startInfo.Arguments) ? "" : (" " + startInfo.Arguments)), opt, Path.GetDirectoryName(startInfo.Command), "", 0, 0);
 				Engine.Symbols.SourcePath = (string.IsNullOrWhiteSpace(startInfo.WorkingDirectory)) ? Path.GetDirectoryName(startInfo.Command) : startInfo.WorkingDirectory;
+				Engine.Symbols.SymbolPath = startInfo.WorkingDirectory;
 			}
 
 			Engine.IsSourceCodeOrientedStepping = true;
 
 			Engine.WaitForEvent();
 			Engine.Execute("bc"); // Clear breakpoint list
-			Engine.WaitForEvent();
-
+			Engine.Execute("ld *"); // Extraordinarily important: Load symbols for all modules! - Only then, the stuff from the .pdb seems to get loaded into the debug environment
+			Engine.WaitForEvent();			
 
 			foreach (Breakpoint bp in Breakpoints)
 			{
