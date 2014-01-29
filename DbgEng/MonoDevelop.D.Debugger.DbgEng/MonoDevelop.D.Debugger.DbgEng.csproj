@@ -116,20 +116,22 @@
       <Link>dbghelp.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\ext\required_on_release\msobj80.dll">
-      <Link>msobj80.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\ext\required_on_release\mspdb80.dll">
-      <Link>mspdb80.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="..\ext\required_on_release\mspdbcore.dll">
       <Link>mspdbcore.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="..\ext\required_on_release\mspdbsrv.exe">
       <Link>mspdbsrv.exe</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\ext\required_on_release\msobj110.dll">
+      <Link>msobj110.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\ext\required_on_release\mspdb110.dll">
+      <Link>mspdb110.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -137,13 +137,27 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 		{
 			const string cv2pdb = "cv2pdb.exe";
 
-			var p = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), cv2pdb);
-			if (!File.Exists(p))
+			var dir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			var p = Path.Combine(dir, cv2pdb);
+			if (!File.Exists(p)){
 				p = cv2pdb;
+				dir = null;
+			}
+
+
+			var psi = new ProcessStartInfo(p, "\""+target+"\"");
+			psi.UseShellExecute = false;
+			psi.RedirectStandardOutput = true;
+			psi.RedirectStandardError = true;
+			psi.CreateNoWindow = true;
+			if (dir != null)
+				psi.WorkingDirectory = dir;
+
+			Process proc;
 
 			try
 			{
-				Process.Start(p, target).WaitForExit(30000);
+				proc = Process.Start(psi);
 			}
 			catch (Exception ex)
 			{
@@ -151,6 +165,12 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 									"\r\nPlease ensure that path to cv2pdb is registered in the 'PATH' environment variable" +
 									"\r\nDetails:\r\n" + ex.Message);
 			}
+
+			if (!proc.WaitForExit(30000))
+				proc.Kill();
+
+			if (proc.ExitCode != 0)
+				throw new Exception("Couldn't execute cv2pdb: " + proc.StandardError.ReadToEnd() + "\r\n" + proc.StandardOutput.ReadToEnd());
 		}
 
 		void StartDebuggerSession(DebuggerStartInfo startInfo, long attachToProcessId)
