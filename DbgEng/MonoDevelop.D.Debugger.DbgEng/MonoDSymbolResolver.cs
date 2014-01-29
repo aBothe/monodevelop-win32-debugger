@@ -16,6 +16,8 @@ using MonoDevelop.D;
 
 using DEW = DebugEngineWrapper;
 using MonoDevelop.D.Projects;
+using MonoDevelop.D.Completion;
+using MonoDevelop.D.Building;
 
 namespace MonoDevelop.D.DDebugger.DbgEng
 {
@@ -56,11 +58,10 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			// If syntax tree built, search the variable location
 			if (module != null)
 			{
-				IStatement stmt = null;
-
+				IStatement stmt;
 				var block = DResolver.SearchBlockAt(module, new CodeLocation(0, codeLine), out stmt);
-
-				var ctxt = ResolutionContext.Create(null, null, block);
+				
+				var ctxt = ResolutionContext.Create(dproj != null ? dproj.ParseCache : DCompilerService.Instance.GetDefaultCompiler().GenParseCacheView(), null, block, stmt);
 
 				AbstractType[] res;
 				if (parentsymbol != null)
