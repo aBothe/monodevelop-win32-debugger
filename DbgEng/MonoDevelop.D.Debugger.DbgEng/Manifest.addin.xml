@@ -17,6 +17,7 @@
 		<Import assembly="DebugEngineWrapper.dll"/>
 
 		<Import file="msvcr110.dll"/>
+		<Import file="msvcp110.dll"/>
 		<Import file="cv2pdb.exe"/>
 		<Import file="dbgeng.dll"/>
 		<Import file="dbghelp.dll"/>
