@@ -12,6 +12,7 @@ using MonoDevelop.Core;
 using MonoDevelop.Core.Execution;
 //using Mono.Unix.Native;
 using DebugEngineWrapper;
+using System.Reflection;
 
 namespace MonoDevelop.D.DDebugger.DbgEng
 {
@@ -134,9 +135,15 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 		
         private void RunCv2Pdb(string target)
         {
+			const string cv2pdb = "cv2pdb.exe";
+
+			var p = Path.Combine(Assembly.GetExecutingAssembly().Location, cv2pdb);
+			if (!File.Exists(p))
+				p = cv2pdb;
+
             try
             {
-                Process.Start("cv2pdb.exe", target).WaitForExit(30000);
+                Process.Start(p, target).WaitForExit(30000);
             }
             catch (Exception ex)
             {
