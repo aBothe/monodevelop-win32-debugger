@@ -20,8 +20,8 @@
 		<Import file="cv2pdb.exe"/>
 		<Import file="dbgeng.dll"/>
 		<Import file="dbghelp.dll"/>
-		<Import file="msobj80.dll"/>
-		<Import file="mspdb80.dll"/>
+		<Import file="msobj110.dll"/>
+		<Import file="mspdb110.dll"/>
 		<Import file="mspdbcore.dll"/>
 		<Import file="mspdbsrv.exe"/>
 	</Runtime>
