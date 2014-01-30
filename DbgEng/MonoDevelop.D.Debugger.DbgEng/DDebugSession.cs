@@ -551,7 +551,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			//ToDo: select thread on engine wrapper
 		}
 
-		string Escape(string str)
+		static string Escape(string str)
 		{
 			if (str == null)
 				return null;
