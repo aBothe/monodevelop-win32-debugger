@@ -18,6 +18,7 @@ using DEW = DebugEngineWrapper;
 using MonoDevelop.D.Projects;
 using MonoDevelop.D.Completion;
 using MonoDevelop.D.Building;
+using D_Parser.Completion;
 
 namespace MonoDevelop.D.DDebugger.DbgEng
 {
@@ -58,26 +59,29 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			// If syntax tree built, search the variable location
 			if (module != null)
 			{
-				IStatement stmt;
-				var block = DResolver.SearchBlockAt(module, new CodeLocation(0, codeLine), out stmt);
-				
-				var ctxt = ResolutionContext.Create(dproj != null ? dproj.ParseCache : DCompilerService.Instance.GetDefaultCompiler().GenParseCacheView(), null, block, stmt);
+				var ed = Resolver.DResolverWrapper.CreateEditorData(IdeApp.Workbench.ActiveDocument);
+				var ctxt = ResolutionContext.Create(ed, false);
 
-				AbstractType[] res;
-				if (parentsymbol != null)
-				{
-					var parentres = ResolveParentSymbol(parentsymbol, ctxt);
-					res = TypeDeclarationResolver.ResolveFurtherTypeIdentifier(symbolname, parentres, ctxt, null);
-				}
-				else
-				{
-					res = TypeDeclarationResolver.ResolveIdentifier(symbolname, ctxt, null);
-				}
+				CodeCompletion.DoTimeoutableCompletionTask(null, ctxt, () =>
+					{
+						ctxt.Push(module, new CodeLocation(0, codeLine));
 
-				if (res != null && res.Length > 0 && res[0] is DSymbol)
-				{
-					variableNode = (res[0] as DSymbol).Definition;
-				}
+						AbstractType[] res;
+						if (parentsymbol != null)
+						{
+							var parentres = ResolveParentSymbol(parentsymbol, ctxt);
+							res = TypeDeclarationResolver.ResolveFurtherTypeIdentifier(symbolname, parentres, ctxt, null);
+						}
+						else
+						{
+							res = TypeDeclarationResolver.ResolveIdentifier(symbolname, ctxt, null);
+						}
+
+						if (res != null && res.Length > 0 && res[0] is DSymbol)
+						{
+							variableNode = (res[0] as DSymbol).Definition;
+						}
+					});
 			}
 
 			// Set type string

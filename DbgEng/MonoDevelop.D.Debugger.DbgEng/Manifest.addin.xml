@@ -5,7 +5,7 @@
        description = "D Debugger support for Mono-D using DbgEng"
        copyright   = ""
        category = "Debugging"
-       version   = "0.0.1">
+       version   = "0.0.4">
 
 	<Dependencies>
 		<Addin id="MonoDevelop.Core" version="4.0"/>
