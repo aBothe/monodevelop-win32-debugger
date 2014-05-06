@@ -10,62 +10,14 @@ using DEW = DebugEngineWrapper;
 
 namespace MonoDevelop.D.DDebugger.DbgEng
 {
-	class DDebugBacktrace : IBacktrace, IObjectValueSource
+	class DDebugBacktrace : PlainDbgEngBasedBacktrace
 	{
-		int fcount;
-		StackFrame firstFrame;
-		DDebugSession session;
-		DissassemblyBuffer[] disBuffers;
-		int currentFrame = -1;
-		long threadId;
-		DEW.DBGEngine Engine;
 		MonoDSymbolResolver symbolResolver;
 
 		public DDebugBacktrace(DDebugSession session, long threadId, DEW.DBGEngine engine)
+			: base(session, threadId, engine)
 		{
-			this.session = session;
-			this.Engine = engine;
-			fcount = engine.CallStack.Length;
-			this.threadId = threadId;
-			symbolResolver = new MonoDSymbolResolver(this, Engine);
-			if (firstFrame != null)
-				this.firstFrame = CreateFrame(Engine.CallStack[0]);
-		}
-
-		public int FrameCount
-		{
-			get
-			{
-				return fcount;
-			}
-		}
-
-		public StackFrame[] GetStackFrames(int firstIndex, int lastIndex)
-		{
-			//StackFrame frm = new StackFrame(
-			//Engine.CallStack[0].
-
-
-			List<StackFrame> frames = new List<StackFrame>();
-			if (firstIndex == 0 && firstFrame != null)
-			{
-				frames.Add(firstFrame);
-				firstIndex++;
-			}
-
-			if (lastIndex >= fcount)
-				lastIndex = fcount - 1;
-
-			if (firstIndex > lastIndex)
-				return frames.ToArray();
-
-			session.SelectThread(threadId);
-
-			for (int n = 0; n < Engine.CallStack.Length; n++)
-			{
-				frames.Add(CreateFrame(Engine.CallStack[n]));
-			}
-			return frames.ToArray();
+			symbolResolver = new MonoDSymbolResolver(this, engine);
 		}
 
 		public ObjectValue[] GetLocalVariables(int frameIndex, EvaluationOptions options)

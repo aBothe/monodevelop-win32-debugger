@@ -79,6 +79,7 @@
   <ItemGroup>
     <Compile Include="DDebugBacktrace.cs" />
     <Compile Include="MonoDSymbolResolver.cs" />
+    <Compile Include="PlainDbgEngBasedBacktrace.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="DDebugSession.cs" />
     <Compile Include="DDebugSessionFactory.cs" />

@@ -38,11 +38,23 @@ namespace DebugEngineWrapper
 
 		USHORT ReadVirtualByte(ULONG64 Offset)
 		{
-			USHORT *ret=new USHORT[1];
-			ds->ReadVirtual(Offset,&ret,1,0);
-			USHORT ret2=ret[0];
-			delete [] ret;
-			return ret2;
+			USHORT ret=0;
+			ds->ReadVirtual(Offset,&ret,sizeof(USHORT),0);
+			return ret;
+		}
+
+		ULONG ReadVirtualInt32(ULONG64 offset)
+		{
+			ULONG ret=0;
+			ds->ReadVirtual(offset,&ret,sizeof(ULONG),0);
+			return ret;
+		}
+
+		ULONG64 ReadVirtualInt64(ULONG64 offset)
+		{
+			ULONG64 ret=0;
+			ds->ReadVirtual(offset,&ret,sizeof(ULONG64),0);
+			return ret;
 		}
 	};
 }

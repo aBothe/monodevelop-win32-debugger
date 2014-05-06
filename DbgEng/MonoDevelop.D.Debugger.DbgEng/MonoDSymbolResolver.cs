@@ -64,7 +64,8 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
 				CodeCompletion.DoTimeoutableCompletionTask(null, ctxt, () =>
 					{
-						ctxt.Push(module, new CodeLocation(0, codeLine));
+						var loc = new CodeLocation(0, codeLine);
+						ctxt.Push(DResolver.SearchBlockAt(module, loc), loc);
 
 						AbstractType[] res;
 						if (parentsymbol != null)
@@ -273,8 +274,10 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
 		public static DModule GetFileSyntaxTree(string file, out AbstractDProject OwnerProject)
 		{
-			OwnerProject = IdeApp.Workbench.ActiveDocument.Project as AbstractDProject;
-			return GlobalParseCache.GetModule(file);
+			var doc = IdeApp.Workbench.ActiveDocument;
+			OwnerProject = doc.Project as AbstractDProject;
+			var dparsedDoc = doc.ParsedDocument as MonoDevelop.D.Parser.ParsedDModule;
+			return dparsedDoc != null ? dparsedDoc.DDom : GlobalParseCache.GetModule(file);
 		}
 	}
 }

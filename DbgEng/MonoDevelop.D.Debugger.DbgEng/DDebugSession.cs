@@ -323,7 +323,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			ulong tempoff = (ulong)offset;
 			if (breakpoints.ContainsKey(tempoff))
 			{
-				breakpoints[(ulong)tempoff].EventInfo.UpdateHitCount((int)breakpoints[(ulong)tempoff].Breakpoint.HitCount);
+				breakpoints[(ulong)tempoff].EventInfo.BreakEvent.HitCount = (int)breakpoints[(ulong)tempoff].Breakpoint.HitCount;
 				args.BreakEvent = breakpoints[(ulong)tempoff].EventInfo.BreakEvent;
 			}
 			else
@@ -344,7 +344,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			ProcessInfo process = OnGetProcesses()[0];
 			args.Process = new ProcessInfo(process.Id, process.Name);
 
-			args.Backtrace = new Backtrace(new DDebugBacktrace(this, activeThread, Engine));
+			args.Backtrace = new Backtrace(new PlainDbgEngBasedBacktrace(this, activeThread, Engine));
 
 			ThreadPool.QueueUserWorkItem(delegate(object data)
 			{
@@ -366,7 +366,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			WaitCallback nc = delegate
 			{
 				if (hitCount != -1)
-					binfo.UpdateHitCount(hitCount);
+					binfo.BreakEvent.HitCount = hitCount;
 				if (lastTrace != null)
 					binfo.UpdateLastTraceValue(lastTrace);
 			};
@@ -535,7 +535,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
 		protected override Backtrace OnGetThreadBacktrace(long processId, long threadId)
 		{
-			return new Backtrace(new DDebugBacktrace(this, threadId, Engine));
+			return new Backtrace(new PlainDbgEngBasedBacktrace(this, threadId, Engine));
 		}
 
 		protected override AssemblyLine[] OnDisassembleFile(string file)

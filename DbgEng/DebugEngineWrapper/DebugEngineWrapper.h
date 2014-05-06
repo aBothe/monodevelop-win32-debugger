@@ -170,6 +170,14 @@ namespace DebugEngineWrapper {
 			}
 		}
 
+		property ULONG CurrentFrameNumber
+		{
+			void set(ULONG i)
+			{
+				Symbols->sym->SetScopeFrameByIndex(i);
+			}
+		}
+
 		property ULONG64 CurrentInstructionOffset
 		{
 			ULONG64 get()

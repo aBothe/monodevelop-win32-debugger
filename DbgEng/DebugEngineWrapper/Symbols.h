@@ -165,6 +165,7 @@ namespace DebugEngineWrapper
 			pin_ptr<const wchar_t> s = PtrToStringChars(pattern);
 			ULONG64 searchHandle;
 			sym->StartSymbolMatchWide(s,&searchHandle);
+			
 
 			ArrayList^ ret=gcnew ArrayList();
 			wchar_t* buf=new wchar_t[512];
@@ -176,6 +177,9 @@ namespace DebugEngineWrapper
 			}
 
 			sym->EndSymbolMatch(searchHandle);
+
+			delete s;
+			delete buf;
 
 			array<DebugSymbolData^>^ ret2=gcnew array<DebugSymbolData^>(ret->Count);
 			for(int i=0; i<ret->Count;i++)
@@ -195,6 +199,36 @@ namespace DebugEngineWrapper
 			}
 		}
 #pragma region Evaluation of local symbol contents
+		property DebugSymbolGroup^ ScopeSymbols
+		{
+			DebugSymbolGroup^ get(){
+				DebugSymbolGroup^ dsg;
+
+				DbgSymbolGroup* sg;
+				if(sym->GetScopeSymbolGroup(DEBUG_SCOPE_GROUP_ALL,0,(PDEBUG_SYMBOL_GROUP*)&sg)==S_OK)
+				{
+					dsg=gcnew DebugSymbolGroup(sg);
+					return dsg;
+				}
+				return nullptr;
+			}
+		}
+
+		property DebugSymbolGroup^ ScopeParameterSymbols
+		{
+			DebugSymbolGroup^ get(){
+				DebugSymbolGroup^ dsg;
+
+				DbgSymbolGroup* sg;
+				if(sym->GetScopeSymbolGroup(DEBUG_SCOPE_GROUP_ARGUMENTS,0,(PDEBUG_SYMBOL_GROUP*)&sg)==S_OK)
+				{
+					dsg=gcnew DebugSymbolGroup(sg);
+					return dsg;
+				}
+				return nullptr;
+			}
+		}
+
 		property DebugSymbolGroup^ ScopeLocalSymbols
 		{
 			DebugSymbolGroup^ get(){
