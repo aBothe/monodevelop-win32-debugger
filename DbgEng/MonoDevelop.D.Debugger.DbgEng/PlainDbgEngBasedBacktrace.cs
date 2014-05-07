@@ -7,10 +7,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using DEW = DebugEngineWrapper;
+using MonoDevelop.D.Debugging;
 
 namespace MonoDevelop.D.DDebugger.DbgEng
 {
-	class PlainDbgEngBasedBacktrace : IBacktrace, IObjectValueSource
+	class PlainDbgEngBasedBacktrace : IBacktrace, IDBacktraceHelpers
 	{
 		int fcount;
 		protected StackFrame firstFrame;
@@ -19,9 +20,11 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 		protected int currentFrame = -1;
 		public readonly long threadId;
 		public readonly DEW.DBGEngine Engine;
+		public readonly DLocalExamBacktrace BacktraceHelper;
 
 		public PlainDbgEngBasedBacktrace(DDebugSession session, long threadId, DEW.DBGEngine engine)
 		{
+			BacktraceHelper = new DLocalExamBacktrace(this);
 			this.session = session;
 			this.Engine = engine;
 			fcount = engine.CallStack.Length;
@@ -40,10 +43,6 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
 		public StackFrame[] GetStackFrames(int firstIndex, int lastIndex)
 		{
-			//StackFrame frm = new StackFrame(
-			//Engine.CallStack[0].
-
-
 			List<StackFrame> frames = new List<StackFrame>();
 			if (firstIndex == 0 && firstFrame != null)
 			{
@@ -155,65 +154,20 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
 		public ObjectValue[] GetExpressionValues(int frameIndex, string[] expressions, EvaluationOptions options)
 		{
-			Engine.CurrentFrameNumber = (uint)frameIndex;
+			SelectStackFrame(frameIndex);
 
-			var symGroup = Engine.Symbols.ScopeSymbols;
 			var l = new List<ObjectValue>();
+			var locals = Engine.Symbols.ScopeSymbols;
+
 			foreach (var exp in expressions)
-			{
-				var path = exp.Split('.');
-				if (path.Length < 1)
-					l.Add(ObjectValue.CreateUnknown(exp));
-
-				// Get root variable
-				DEW.DebugScopedSymbol symb = null;
-				var rootVarName = path[0];
-				var objPath = new ObjectPath(rootVarName);
-				for (uint i = symGroup.Count; i > 0; i--)
-				{
-					var s = symGroup.op_Subscript(i-1);
-					if (s.ParentId == uint.MaxValue && s.Name == rootVarName)
-					{
-						symb = s;
-						break;
-					}
-				}
-
-				// Get child items
-				int k = 1;
-				while (k < path.Length && symb != null)
-				{
-					bool foundSomething = false;
-					for (uint i = symGroup.Count; i > 0; i--)
-					{
-						var s = symGroup.op_Subscript(i - 1);
-						if (s.ParentId == symb.Id && s.Name == path[k])
-						{
-							if(k < path.Length-1)
-								objPath = objPath.Append(path[k]);
-							symb = s;
-							foundSomething = true;
-							break;
-						}
-					}
-
-					if (!foundSomething)
-						symb = null;
-					k++;
-				}
-
-				if (symb == null)
-					l.Add(ObjectValue.CreateUnknown(exp));
-				else
-					l.Add(CreateObjectValue(symb, path.Length == 1 ? new ObjectPath() : objPath));
-			}
+				l.Add(BacktraceHelper.CreateObjectValue(GetVariableWrapper(exp, locals), options));
 
 			return l.ToArray();
 		}
 
-		public class DObjectValue
+		public class DObjectValue : IDBacktraceSymbol
 		{
-			public ITypeDeclaration DType;
+			//public ITypeDeclaration DType;
 			WeakReference symbolRef;
 			public DEW.DebugScopedSymbol Symbol
 			{
@@ -227,90 +181,145 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
 				var type = symb.TypeName.Replace('@','.');
 				if (type.StartsWith("class"))
-					type = type.Substring(5);
+					type = type.Substring(5);/*
 				if (!string.IsNullOrWhiteSpace(type))
-					DType = DParser.ParseBasicType(type);
+					DType = DParser.ParseBasicType(type);*/
+			}
+
+			public ulong Offset
+			{
+				get { return Symbol.Offset; }
+			}
+
+			public string Name
+			{
+				get { return Symbol.Name; }
+			}
+
+			public string TypeName
+			{
+				get { return Symbol.TypeName.Replace('@', '.'); }
+			}
+
+			public string Value
+			{
+				get { return Symbol.TextValue; }
+			}
+
+			public string FileName
+			{
+				get {
+					string fileName = "";
+					uint line;
+					// TODO: Get current debug engine, lookup offset
+					return fileName;
+				}
+			}
+
+			public bool HasParent
+			{
+				get { return Symbol.ParentId != uint.MaxValue ; }
+			}
+
+			DObjectValue parentVal;
+			public IDBacktraceSymbol Parent
+			{
+				get {
+					return parentVal ?? (HasParent ? parentVal = new DObjectValue(Symbol.Parent) : null);
+				}
+			}
+
+			public int ChildCount
+			{
+				get { return (int)Symbol.ChildrenCount; }
+			}
+
+			public IEnumerable<IDBacktraceSymbol> Children
+			{
+				get {
+					foreach (var ch in Symbol.Children)
+						yield return new DObjectValue(ch);
+				}
 			}
 		}
-
+		/*
 		protected readonly Dictionary<string, DObjectValue> ValueCache = new Dictionary<string, DObjectValue>();
 
 		protected static string BuildObjPath(ObjectPath p, string name = null)
 		{
 			return (p.Length > 0 ? p.Join(".") : "") + (string.IsNullOrWhiteSpace(name) ? "" : ("." + name));
+		}*/
+
+		public DObjectValue GetVariableWrapper(ObjectPath path)
+		{
+			if(path.Length == 0)
+				return null;
+
+			var exp = path.Join(".");
+			if (string.IsNullOrWhiteSpace(exp))
+				return null;
+
+			return GetVariableWrapper(exp);
 		}
 
-		protected virtual ObjectValue CreateObjectValue(DEW.DebugScopedSymbol symb, ObjectPath parentPath)
+		public DObjectValue GetVariableWrapper(string exp, DEW.DebugSymbolGroup symGroup = null)
 		{
-			var name = symb.Name;
-			var childPath = parentPath.Length == 0 ? new ObjectPath(name) : parentPath.Append(name);
+			var path = exp.Split('.');
+			if(path.Length < 1)
+				return null;
 
-			if (string.IsNullOrWhiteSpace(name))
-				return ObjectValue.CreateUnknown(null, childPath, symb.TypeName);
+			if (symGroup == null)
+				symGroup = Engine.Symbols.ScopeSymbols;
 
-			var childCount = (int)symb.ChildrenCount;
-
-			
-			var v = new DObjectValue(symb);
-
-			ValueCache[BuildObjPath(parentPath, name)] = v;
-			
-			ObjectValue ov = null;
-
-			if (childCount > 0)
+			// Get root variable
+			DEW.DebugScopedSymbol symb = null;
+			var rootVarName = path[0];
+			var objPath = new ObjectPath(rootVarName);
+			for (uint i = symGroup.Count; i > 0; i--)
 			{
-				ov = ObjectValue.CreateArray(this, childPath, symb.TypeName, childCount, ObjectValueFlags.Field, null);
+				var s = symGroup.op_Subscript(i - 1);
+				if (s.ParentId == uint.MaxValue && s.Name == rootVarName)
+				{
+					symb = s;
+					break;
+				}
 			}
-			else if (v.DType is ArrayDecl)
+
+			// Get child items
+			int k = 1;
+			while (k < path.Length && symb != null)
 			{
-				uint sz;
-				if (symb.Size == 8)
-					sz = Engine.Memory.ReadVirtualInt32(symb.Offset);
-				else if (symb.Size == 16)
-					sz = (uint)Engine.Memory.ReadVirtualInt64(symb.Offset);
-				else
-					sz = 0;
-				
-				if(ov == null)
-					ov = ObjectValue.CreateArray(this, childPath, v.DType.ToString(), (int)sz, ObjectValueFlags.Array, null);
+				bool foundSomething = false;
+				for (uint i = symGroup.Count; i > 0; i--)
+				{
+					var s = symGroup.op_Subscript(i - 1);
+					if (s.ParentId == symb.Id && s.Name == path[k])
+					{
+						symb = s;
+						foundSomething = true;
+						break;
+					}
+				}
+
+				if (!foundSomething)
+					return null;
+				k++;
 			}
-			else
-			{
-				ov = ObjectValue.CreatePrimitive(this, childPath, symb.TypeName, new EvaluationResult(symb.TextValue), ObjectValueFlags.Field);
-			}
-			return ov;
+
+			if (symb == null)
+				return null;
+
+			return new DObjectValue(symb);
 		}
 
 		public ObjectValue[] GetLocalVariables(int frameIndex, EvaluationOptions options)
 		{
-			var values = new List<ObjectValue>();
-			Engine.CurrentFrameNumber = (uint)frameIndex;
-			var locals = Engine.Symbols.ScopeLocalSymbols;
-			if (locals != null)
-				for (uint i = 0; i < locals.Count; i++)
-				{
-					var s = locals.op_Subscript(i);
-					if(s.ParentId == uint.MaxValue) // Root elements
-						values.Add(CreateObjectValue(s, new ObjectPath()));
-				}
-
-			return values.ToArray();
+			return BacktraceHelper.GetLocals(frameIndex, options);
 		}
 
 		public ObjectValue[] GetParameters(int frameIndex, EvaluationOptions options)
 		{
-			var values = new List<ObjectValue>();
-			Engine.CurrentFrameNumber = (uint)frameIndex;
-			var locals = Engine.Symbols.ScopeParameterSymbols;
-			if (locals != null)
-				for (uint i = 0; i < locals.Count; i++)
-				{
-					var s = locals.op_Subscript(i);
-					if (s.ParentId == uint.MaxValue) // Root elements
-						values.Add(CreateObjectValue(s, new ObjectPath()));
-				}
-
-			return values.ToArray();
+			return BacktraceHelper.GetParameters(frameIndex, options);
 		}
 
 		public ObjectValue GetThisReference(int frameIndex, EvaluationOptions options)
@@ -327,42 +336,88 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
 
 
-		public virtual ObjectValue[] GetChildren(ObjectPath path, int index, int count, EvaluationOptions options)
-		{
-			DObjectValue v;
-			if (!ValueCache.TryGetValue(BuildObjPath(path), out v))
-				return null;
-			
-			var s = v.Symbol;
+		
 
-			var ch = new List<ObjectValue>();
-			var children = s.Children;
-			for (int c = count; c > 0; c++)
-			{
-				ch.Add(CreateObjectValue(children[index], path));
-				index++;
+		public void SelectStackFrame(int frameIndex)
+		{
+			Engine.CurrentFrameNumber = (uint)frameIndex;
+		}
+
+		public void GetStackFrameInfo(int frameIndex, out string file, out ulong offset, out CodeLocation sourceLocation)
+		{
+			var f = Engine.CallStack[frameIndex];
+			offset = f.FrameOffset;
+			uint line;
+			Engine.Symbols.GetLineByOffset(offset, out file, out line);
+			sourceLocation = new CodeLocation(0, (int)line);
+		}
+
+		public IEnumerable<IDBacktraceSymbol> Parameters
+		{
+			get {
+				var locals = Engine.Symbols.ScopeParameterSymbols;
+				if (locals != null)
+					for (uint i = 0; i < locals.Count; i++)
+					{
+						var s = locals.op_Subscript(i);
+						if (s.ParentId == uint.MaxValue) // Root elements
+							yield return new DObjectValue(s);
+					}
 			}
-
-			return ch.ToArray();
 		}
 
-		public virtual object GetRawValue(ObjectPath path, EvaluationOptions options)
+		public IEnumerable<IDBacktraceSymbol> Locals
 		{
-			return null;
+			get {
+				var locals = Engine.Symbols.ScopeLocalSymbols;
+				if (locals != null)
+					for (uint i = 0; i < locals.Count; i++)
+					{
+						var s = locals.op_Subscript(i);
+						if (s.ParentId == uint.MaxValue) // Root elements
+							yield return new DObjectValue(s);
+					}
+			}
 		}
 
-		public virtual ObjectValue GetValue(ObjectPath path, EvaluationOptions options)
+		public int PointerSize
 		{
-			return null;
+			get { throw new NotImplementedException(); }
 		}
 
-		public virtual void SetRawValue(ObjectPath path, object value, EvaluationOptions options)
+		public byte[] ReadBytes(ulong offset, ulong size)
 		{
+			return Engine.Memory.ReadVirtual(offset, (uint)size);
 		}
 
-		public EvaluationResult SetValue(ObjectPath path, string value, EvaluationOptions options)
+		public short ReadInt16(ulong offset)
 		{
-			return null;
+			return (short)Engine.Memory.ReadVirtualByte(offset);
+		}
+
+		public byte ReadByte(ulong offset)
+		{
+			return Engine.Memory.ReadVirtual(offset, 1)[0];
+		}
+
+		public int ReadInt32(ulong offset)
+		{
+			return (int)Engine.Memory.ReadVirtualInt32(offset);
+		}
+
+		public long ReadInt64(ulong offset)
+		{
+			return (long)Engine.Memory.ReadVirtualInt64(offset);
+		}
+
+		public D_Parser.Resolver.ResolutionContext LocalsResolutionHelperContext
+		{
+			get { throw new NotImplementedException(); }
+		}
+
+		public IActiveExamination ActiveExamination
+		{
+			get { return null; }
 		}
 	}
 }

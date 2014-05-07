@@ -77,7 +77,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DDebugBacktrace.cs" />
+    <None Include="DDebugBacktrace.cs" />
     <Compile Include="MonoDSymbolResolver.cs" />
     <Compile Include="PlainDbgEngBasedBacktrace.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
