@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using DEW = DebugEngineWrapper;
 using MonoDevelop.D.Debugging;
+using D_Parser.Resolver;
 
 namespace MonoDevelop.D.DDebugger.DbgEng
 {
@@ -157,10 +158,9 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			SelectStackFrame(frameIndex);
 
 			var l = new List<ObjectValue>();
-			var locals = Engine.Symbols.ScopeSymbols;
 
 			foreach (var exp in expressions)
-				l.Add(BacktraceHelper.CreateObjectValue(GetVariableWrapper(exp, locals), options));
+				l.Add(BacktraceHelper.CreateObjectValue(exp, options));
 
 			return l.ToArray();
 		}
@@ -179,9 +179,9 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			{
 				Symbol = symb;
 
-				var type = symb.TypeName.Replace('@','.');
+				/*var type = symb.TypeName.Replace('@','.');
 				if (type.StartsWith("class"))
-					type = type.Substring(5);/*
+					type = type.Substring(5);
 				if (!string.IsNullOrWhiteSpace(type))
 					DType = DParser.ParseBasicType(type);*/
 			}
@@ -199,6 +199,13 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			public string TypeName
 			{
 				get { return Symbol.TypeName.Replace('@', '.'); }
+			}
+
+			public AbstractType DType
+			{
+				get {
+					return null;
+				}
 			}
 
 			public string Value
@@ -242,84 +249,17 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 				}
 			}
 		}
-		/*
-		protected readonly Dictionary<string, DObjectValue> ValueCache = new Dictionary<string, DObjectValue>();
-
-		protected static string BuildObjPath(ObjectPath p, string name = null)
-		{
-			return (p.Length > 0 ? p.Join(".") : "") + (string.IsNullOrWhiteSpace(name) ? "" : ("." + name));
-		}*/
-
-		public DObjectValue GetVariableWrapper(ObjectPath path)
-		{
-			if(path.Length == 0)
-				return null;
-
-			var exp = path.Join(".");
-			if (string.IsNullOrWhiteSpace(exp))
-				return null;
-
-			return GetVariableWrapper(exp);
-		}
-
-		public DObjectValue GetVariableWrapper(string exp, DEW.DebugSymbolGroup symGroup = null)
-		{
-			var path = exp.Split('.');
-			if(path.Length < 1)
-				return null;
-
-			if (symGroup == null)
-				symGroup = Engine.Symbols.ScopeSymbols;
-
-			// Get root variable
-			DEW.DebugScopedSymbol symb = null;
-			var rootVarName = path[0];
-			var objPath = new ObjectPath(rootVarName);
-			for (uint i = symGroup.Count; i > 0; i--)
-			{
-				var s = symGroup.op_Subscript(i - 1);
-				if (s.ParentId == uint.MaxValue && s.Name == rootVarName)
-				{
-					symb = s;
-					break;
-				}
-			}
-
-			// Get child items
-			int k = 1;
-			while (k < path.Length && symb != null)
-			{
-				bool foundSomething = false;
-				for (uint i = symGroup.Count; i > 0; i--)
-				{
-					var s = symGroup.op_Subscript(i - 1);
-					if (s.ParentId == symb.Id && s.Name == path[k])
-					{
-						symb = s;
-						foundSomething = true;
-						break;
-					}
-				}
-
-				if (!foundSomething)
-					return null;
-				k++;
-			}
-
-			if (symb == null)
-				return null;
-
-			return new DObjectValue(symb);
-		}
 
 		public ObjectValue[] GetLocalVariables(int frameIndex, EvaluationOptions options)
 		{
-			return BacktraceHelper.GetLocals(frameIndex, options);
+			SelectStackFrame(frameIndex);
+			return BacktraceHelper.GetLocals(options);
 		}
 
 		public ObjectValue[] GetParameters(int frameIndex, EvaluationOptions options)
 		{
-			return BacktraceHelper.GetParameters(frameIndex, options);
+			SelectStackFrame(frameIndex);
+			return BacktraceHelper.GetParameters(options);
 		}
 
 		public ObjectValue GetThisReference(int frameIndex, EvaluationOptions options)
@@ -343,9 +283,9 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			Engine.CurrentFrameNumber = (uint)frameIndex;
 		}
 
-		public void GetStackFrameInfo(int frameIndex, out string file, out ulong offset, out CodeLocation sourceLocation)
+		public void GetCurrentStackFrameInfo(out string file, out ulong offset, out CodeLocation sourceLocation)
 		{
-			var f = Engine.CallStack[frameIndex];
+			var f = Engine.CurrentFrame;
 			offset = f.FrameOffset;
 			uint line;
 			Engine.Symbols.GetLineByOffset(offset, out file, out line);
@@ -408,11 +348,6 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 		public long ReadInt64(ulong offset)
 		{
 			return (long)Engine.Memory.ReadVirtualInt64(offset);
-		}
-
-		public D_Parser.Resolver.ResolutionContext LocalsResolutionHelperContext
-		{
-			get { throw new NotImplementedException(); }
 		}
 
 		public IActiveExamination ActiveExamination
