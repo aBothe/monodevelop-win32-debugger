@@ -4,6 +4,7 @@
 
 using namespace System;
 using namespace cliext;
+using namespace System::Runtime::InteropServices;
 
 namespace DebugEngineWrapper
 {
@@ -16,14 +17,15 @@ namespace DebugEngineWrapper
 		array<BYTE>^ ReadVirtual(ULONG64 Offset,ULONG Size)
 		{
 			ULONG readb=0;
-			BYTE *ret=new BYTE[Size];
-			ds->ReadVirtual(Offset,&ret,Size,&readb);
+			BYTE* ret=new BYTE[Size];
+			ds->ReadVirtual(Offset,ret,Size,&readb);
 			
+			readb = min(readb, Size);
+
 			array<BYTE>^ ret2=gcnew array<BYTE>(readb);
-			for(ULONG i=0;i<readb;i++)
-			{
-				ret2[i]=ret[i];
-			}
+			for(ULONG i=readb; i > 0; i--)
+				ret2[i-1] = ret[i-1];
+
 			delete [] ret;
 			return ret2;
 		}
