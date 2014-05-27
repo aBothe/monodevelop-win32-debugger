@@ -167,7 +167,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
 		public class DObjectValue : IDBacktraceSymbol
 		{
-			//public ITypeDeclaration DType;
+			readonly PlainDbgEngBasedBacktrace Backtrace;
 			WeakReference symbolRef;
 			public DEW.DebugScopedSymbol Symbol
 			{
@@ -175,8 +175,9 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 				private set { symbolRef = value != null ? new WeakReference(value) : null; }
 			}
 
-			public DObjectValue(DEW.DebugScopedSymbol symb)
+			public DObjectValue(DEW.DebugScopedSymbol symb, PlainDbgEngBasedBacktrace backtrace)
 			{
+				this.Backtrace = backtrace;
 				Symbol = symb;
 
 				/*var type = symb.TypeName.Replace('@','.');
@@ -198,12 +199,29 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 
 			public string TypeName
 			{
-				get { return Symbol.TypeName.Replace('@', '.'); }
+				get { return typeName ?? (typeName = Symbol.TypeName.Replace('@', '.')); }
 			}
+			string typeName;
 
 			public AbstractType DType
 			{
 				get {
+					var tn = TypeName;
+					if (string.IsNullOrWhiteSpace(tn))
+						return null;
+
+					if (tn.StartsWith("class"))
+					{
+						var td = DParser.ParseBasicType(tn.Substring(5));
+						if (td != null)
+						{
+							Backtrace.BacktraceHelper.TryUpdateStackFrameInfo();
+							var t = D_Parser.Resolver.TypeResolution.TypeDeclarationResolver.ResolveSingle(td, Backtrace.BacktraceHelper.ctxt);
+							if (t != null)
+								return t;
+						}
+					}
+
 					return null;
 				}
 			}
@@ -232,7 +250,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			public IDBacktraceSymbol Parent
 			{
 				get {
-					return parentVal ?? (HasParent ? parentVal = new DObjectValue(Symbol.Parent) : null);
+					return parentVal ?? (HasParent ? parentVal = new DObjectValue(Symbol.Parent, Backtrace) : null);
 				}
 			}
 
@@ -245,7 +263,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 			{
 				get {
 					foreach (var ch in Symbol.Children)
-						yield return new DObjectValue(ch);
+						yield return new DObjectValue(ch, Backtrace);
 				}
 			}
 		}
@@ -286,10 +304,20 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 		public void GetCurrentStackFrameInfo(out string file, out ulong offset, out CodeLocation sourceLocation)
 		{
 			var f = Engine.CurrentFrame;
-			offset = f.FrameOffset;
+			offset = f.InstructionOffset;
 			uint line;
 			Engine.Symbols.GetLineByOffset(offset, out file, out line);
 			sourceLocation = new CodeLocation(0, (int)line);
+		}
+
+		public IDBacktraceSymbol FindSymbol(string name)
+		{
+			var symbs = Engine.Symbols.ScopeSymbols;
+			if (symbs != null)
+				for (var i = symbs.Count - 1; i >= 0; i--)
+					if (name == symbs.SymbolName(i))
+						return new DObjectValue(symbs.op_Subscript(i), this);
+			return null;
 		}
 
 		public IEnumerable<IDBacktraceSymbol> Parameters
@@ -301,7 +329,7 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 					{
 						var s = locals.op_Subscript(i);
 						if (s.ParentId == uint.MaxValue) // Root elements
-							yield return new DObjectValue(s);
+							yield return new DObjectValue(s, this);
 					}
 			}
 		}
@@ -315,14 +343,16 @@ namespace MonoDevelop.D.DDebugger.DbgEng
 					{
 						var s = locals.op_Subscript(i);
 						if (s.ParentId == uint.MaxValue) // Root elements
-							yield return new DObjectValue(s);
+							yield return new DObjectValue(s, this);
 					}
 			}
 		}
 
 		public int PointerSize
 		{
-			get { throw new NotImplementedException(); }
+			get {
+				return 4; //TODO
+			}
 		}
 
 		public byte[] ReadBytes(ulong offset, ulong size)
