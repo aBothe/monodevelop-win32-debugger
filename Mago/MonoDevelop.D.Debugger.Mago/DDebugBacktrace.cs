@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using Mono.Debugging.Client;
 using Mono.Debugging.Backend;
-using MonoDevelop.Ide;
 
 using MagoWrapper;
 
@@ -118,7 +117,7 @@ namespace MonoDevelop.D.DDebugger.Mago
             if (expression.Trim().Length == 0)
                 return children.ToArray();
 
-            List<DebugScopedSymbol> childSymbols = this.session.SymbolResolver.GetChildSymbols(expression);
+            List<DebugScopedSymbol> childSymbols = this.session.SymbolResolver.GetChildSymbols(expression, threadId);
             if (childSymbols.Count == 0)
                 return children.ToArray();
 
@@ -271,7 +270,8 @@ namespace MonoDevelop.D.DDebugger.Mago
             session.SymbolResolver.GetCodeLineFromAddress(address, out fn, out ln);
 
 
-            string methodName = session.SymbolResolver.GetFunctionNameFromAddress(address, threadId);
+            //string methodName = session.SymbolResolver.GetFunctionNameFromAddress(address, threadId);
+            string methodName = magoFrame.FunctionName;
             SourceLocation loc = new SourceLocation(methodName, fn, (int)ln);
 
             return new StackFrame((long)address, loc, "Native");

@@ -149,6 +149,8 @@ namespace MonoDevelop.D.DDebugger.Mago
 
             debuggee.OnException += delegate(uint threadId, bool firstChance, ExceptionRecord exceptRec)
             {
+                return DRunMode.DRunMode_Run;
+
                 debuggeeEvent.Set();
                 Console.WriteLine("on exception");
                 activeThread = threadId;
@@ -173,8 +175,8 @@ namespace MonoDevelop.D.DDebugger.Mago
                         Console.WriteLine(ex);
                     }
                 }, args);
-  
-                return false;
+
+                return DRunMode.DRunMode_Run;
             };
 
             debuggee.OnBreakpoint += delegate(uint threadId, uint address)
@@ -188,7 +190,7 @@ namespace MonoDevelop.D.DDebugger.Mago
                 FireBreakPoint(lastLineAddress);
                 StopWaitingForEvents = true;
 
-                return true;
+                return DRunMode.DRunMode_Break;
             };
 
             debuggee.OnStepComplete += delegate(uint threadId)
@@ -376,8 +378,8 @@ namespace MonoDevelop.D.DDebugger.Mago
 
             ProcessInfo process = OnGetProcesses()[0];
             args.Process = new ProcessInfo(process.Id, process.Name);
-
             args.Backtrace = new Backtrace(new DDebugBacktrace(this, activeThread, this.debuggee));//, Engine));
+            args.Thread = GetThread(activeThread);
 
             ThreadPool.QueueUserWorkItem(delegate(object data)
             {
@@ -411,7 +413,7 @@ namespace MonoDevelop.D.DDebugger.Mago
             if (address != 0)
             {
                 breakpointcounter++;
-                debuggee.SetBreakPoint(address, breakpointcounter);
+                debuggee.SetBreakPoint(address);
                 breakpoints[address] = new BreakPointWrapper(breakpointcounter, breakEventInfo);
                 breakEventInfo.Handle = address;
                 breakEventInfo.SetStatus(BreakEventStatus.Bound, null);
@@ -436,7 +438,7 @@ namespace MonoDevelop.D.DDebugger.Mago
             {
                 ulong key = breakpoints[(ulong)binfo.Handle].Key;
                 breakpoints.Remove((ulong)binfo.Handle);
-                debuggee.RemoveBreakPoint((ulong)binfo.Handle, key);
+                debuggee.RemoveBreakPoint((ulong) binfo.Handle);
             }
         }
 
