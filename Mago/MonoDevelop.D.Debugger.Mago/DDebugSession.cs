@@ -149,7 +149,8 @@ namespace MonoDevelop.D.DDebugger.Mago
 
             debuggee.OnException += delegate(uint threadId, bool firstChance, ExceptionRecord exceptRec)
             {
-                return DRunMode.DRunMode_Run;
+                if (firstChance)
+                    return DRunMode.DRunMode_Run;
 
                 debuggeeEvent.Set();
                 Console.WriteLine("on exception");
@@ -163,7 +164,7 @@ namespace MonoDevelop.D.DDebugger.Mago
                 args.Process = new ProcessInfo(process.Id, process.Name);
                 args.Backtrace = new Backtrace(new DDebugExceptionBackTrace(exceptRec, this, activeThread, this.debuggee));
                 args.Thread = this.GetThread(activeThread);
-
+                
                 ThreadPool.QueueUserWorkItem(delegate(object data)
                 {
                     try
@@ -176,7 +177,7 @@ namespace MonoDevelop.D.DDebugger.Mago
                     }
                 }, args);
 
-                return DRunMode.DRunMode_Run;
+                return DRunMode.DRunMode_Break;
             };
 
             debuggee.OnBreakpoint += delegate(uint threadId, uint address)

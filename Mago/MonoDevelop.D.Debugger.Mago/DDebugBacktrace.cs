@@ -9,31 +9,124 @@ using MagoWrapper;
 
 namespace MonoDevelop.D.DDebugger.Mago
 {
-    class DDebugExceptionBackTrace : DDebugBacktrace
+    internal class DDebugExceptionBackTrace : DDebugBacktrace
     {
         private ExceptionRecord exceptionRecord;
+
         public DDebugExceptionBackTrace(ExceptionRecord rec, DDebugSession session, uint threadId, Debuggee debuggee)
             : base(session, threadId, debuggee)
         {
             this.exceptionRecord = rec;
-                
+
         }
 
         public override ExceptionInfo GetException(int frameIndex, EvaluationOptions options)
         {
-            ExceptionInfo result = new ExceptionInfo(
-                ObjectValue.CreateError(
-                    this,
-                    new ObjectPath(
-                        new string[] { exceptionRecord.ExceptionName }), 
-                    exceptionRecord.ExceptionName, 
-                    exceptionRecord.ExceptionInfo, 
-                    ObjectValueFlags.Error));
-            
+
+            ObjectValue val = CreateExceptionObject(exceptionRecord);
+            ExceptionInfo result = new ExceptionInfo(val);
+
             return result;
         }
-    }
 
+        private ObjectValue CreateExceptionObject(ExceptionRecord expRec)
+        {
+            List<ObjectValue> children = new List<ObjectValue>();
+
+            //message
+            ObjectValue message = ObjectValue.CreateObject(
+                this,
+                new ObjectPath(new string[] { expRec.ExceptionName }),
+                "string",
+                expRec.ExceptionInfo,
+                ObjectValueFlags.Object,
+                new ObjectValue[0]);
+            message.Name = "Message";
+            children.Add(message);
+
+            //inner exception
+            if (expRec.InnerExceptionRecord != null)
+            {
+                ObjectValue innerExp = CreateExceptionObject(expRec.InnerExceptionRecord);
+                innerExp.Name = "InnerException";
+                children.Add(innerExp);
+            }
+
+            //do these for first level only?
+            if (expRec == exceptionRecord)
+            {
+                //stack trace
+                List<ObjectValue> stackList = new List<ObjectValue>();
+                for (int i = 0; i < magoCallStackFrames.Count; i++)
+                {
+                    List<ObjectValue> stkValChildren = new List<ObjectValue>();
+
+                    // line
+                    ObjectValue stkValLine = ObjectValue.CreateObject(
+                        this,
+                        new ObjectPath(new string[] { expRec.ExceptionName, "StackTrace", i.ToString(CultureInfo.InvariantCulture) }),
+                        "Int",
+                        i.ToString(CultureInfo.InvariantCulture),
+                        ObjectValueFlags.Object,
+                        new ObjectValue[0]);
+                    stkValLine.Name = "Line";
+                    stkValChildren.Add(stkValLine);
+
+                    ObjectValue stkVal = ObjectValue.CreateObject(
+                        this,
+                        new ObjectPath(new string[] { expRec.ExceptionName, "StackTrace" }),
+                        "Object",
+                        magoCallStackFrames[i].FunctionName,
+                        ObjectValueFlags.Object,
+                        stkValChildren.ToArray());
+                    stackList.Add(stkVal);
+                }
+
+                ObjectValue stacktrace = ObjectValue.CreateArray(
+                    this,
+                    new ObjectPath(new string[] {expRec.ExceptionName}),
+                    "StackTrace",
+                    magoCallStackFrames.Count,
+                    ObjectValueFlags.Array,
+                    stackList.ToArray());
+                stacktrace.Name = "StackTrace";
+                children.Add(stacktrace);
+
+                //instance message
+                List<ObjectValue> instanceChildren = new List<ObjectValue>();
+                ObjectValue instanceMessage = ObjectValue.CreateObject(
+                    this,
+                    new ObjectPath(new string[] { expRec.ExceptionName, "Instance" }),
+                    "string",
+                    expRec.ExceptionInfo,
+                    ObjectValueFlags.Object | ObjectValueFlags.Public,
+                    new ObjectValue[0]);
+                instanceMessage.Name = "Message";
+                instanceChildren.Add(instanceMessage);
+
+                //instance
+                ObjectValue instance = ObjectValue.CreateObject(
+                        this,
+                        new ObjectPath(new string[] { expRec.ExceptionName }),
+                        expRec.ExceptionName,
+                        expRec.ExceptionName,
+                        ObjectValueFlags.Object,
+                        instanceChildren.ToArray());
+                instance.Name = "Instance";
+                children.Add(instance);
+            }
+
+            //parent
+            ObjectValue val = ObjectValue.CreateObject(
+                this,
+                new ObjectPath(new string[] {}),
+                expRec.ExceptionName,
+                String.Empty,
+                ObjectValueFlags.Error, children.ToArray());           
+
+            return val;
+        }
+    }
 
     class DDebugBacktrace : IBacktrace, IObjectValueSource
     {
@@ -42,7 +135,7 @@ namespace MonoDevelop.D.DDebugger.Mago
         DissassemblyBuffer[] disBuffers;
         uint threadId;
         Debuggee debuggee;
-        List<CallStackFrame> magoCallStackFrames;
+        protected List<CallStackFrame> magoCallStackFrames;
         List<DebugScopedSymbol> symbols;
 
 
